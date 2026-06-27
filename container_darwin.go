@@ -73,21 +73,27 @@ func extractIP(id string) (string, error) {
 		return "", fmt.Errorf("could not inspect container %s: %w", id, err)
 	}
 
-	type inspectNetwork struct {
-		Networks []struct {
-			Address string `json:"address"`
-		} `json:"networks"`
-	}
-	var data []inspectNetwork
-	if err := json.Unmarshal(out.Bytes(), &data); err != nil {
-		return "", fmt.Errorf("could not decode json: %w", err)
+	return ipFromInspectOutput(out.Bytes())
+}
+
+func ipFromInspectOutput(data []byte) (string, error) {
+	type inspectContainer []struct {
+		Status struct {
+			Networks []struct {
+				Ipv4Address string `json:"ipv4Address"`
+			} `json:"networks"`
+		} `json:"status"`
 	}
 
-	if len(data) == 0 || len(data[0].Networks) == 0 {
+	var out inspectContainer
+	if err := json.Unmarshal(data, &out); err != nil {
+		return "", fmt.Errorf("could not decode json: %w", err)
+	}
+	if len(out) == 0 || len(out[0].Status.Networks) == 0 {
 		return "", fmt.Errorf("could not get container IP")
 	}
 
-	ipWithMask := data[0].Networks[0].Address
+	ipWithMask := out[0].Status.Networks[0].Ipv4Address
 	ip, _, _ := strings.Cut(ipWithMask, "/")
 
 	return ip, nil
