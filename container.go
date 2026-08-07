@@ -14,11 +14,11 @@ import (
 	"strings"
 )
 
-// Start starts the specified container for running tests.
-func Start(image, port string, args ...string) (*Container, error) {
+func StartWithCmd(image, port string, args []string, command ...string) (*Container, error) {
 	arg := []string{"run", "-P", "-d"}
 	arg = append(arg, args...)
 	arg = append(arg, image)
+	arg = append(arg, command...)
 
 	cmd := exec.Command("docker", arg...)
 	var out bytes.Buffer
@@ -39,6 +39,11 @@ func Start(image, port string, args ...string) (*Container, error) {
 	}
 
 	return &c, nil
+}
+
+// Start starts the specified container for running tests.
+func Start(image, port string, args ...string) (*Container, error) {
+	return StartWithCmd(image, port, args)
 }
 
 // Stop stops and removes the specified container.
